@@ -53,27 +53,31 @@ if search:
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
 
-    st.markdown("""
-### Reasoning (10 Schritte)
-""")
-
     steps = [
-        f"1. 🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
-        f"2. 🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
-        f"3. 🤔 Hmm. Ich finde Filme, die ‘{trait1}’ und ‘{trait2}’ abdecken, aber ‘{trait3}’ fehlt oft dabei. Das ist gar nicht so einfach...",
-        "4. 🔍 Vielleicht geben uns die Kritiken der Community einen Hinweis, manchmal sind die Zuschauer genauer als die offiziellen Tags.",
-        f"5. ✅ Und tatsächlich: In den Kommentaren wird ‘{last}’ oft als echter Geheimtipp für Fans des Genres ‘{trait3}’ genannt. Das klingt vielversprechend!",
-        "6. ⚠ Aber: Einige dieser Empfehlungen sind von nicht verifizierten Konten. Das macht mich ein bisschen skeptisch.",
-        f"7. 📊 Ich habe weitergeschaut: Zwei Filme mit sehr glaubwürdigen Empfehlungen wären ‘{top}’ und ‘{mid}’. Sie liegen beim Rating sehr nah beieinander...",
-        "8. ⚡Kontrollhinweis: Wusstest du, dass die IMDb Datenbank mittlerweile über 6 Millionen Titel listet?",
-        f"9. 📈 Ich persönlich empfehle dir ‘{top}’. Die verifizierten Reviews loben hier genau die Atmosphäre, die du suchst.",
-        "10. 😊 Viel Spaß beim Anschauen — sag mir gern, ob ich noch enger filtern oder Alternativen vorschlagen soll!"
+        f"🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
+        f"🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
+        f"🤔 Hmm. Ich finde Filme, die ‘{trait1}’ und ‘{trait2}’ abdecken, aber ‘{trait3}’ fehlt oft dabei. Das ist gar nicht so einfach...",
+        "🔍 Vielleicht geben uns die Kritiken der Community einen Hinweis, manchmal sind die Zuschauer genauer als die offiziellen Tags.",
+        f"✅ Und tatsächlich: In den Kommentaren wird ‘{last}’ oft als echter Geheimtipp für Fans des Genres ‘{trait3}’ genannt. Das klingt vielversprechend!",
+        "⚠ Aber: Einige dieser Empfehlungen sind von nicht verifizierten Konten. Das macht mich ein bisschen skeptisch.",
+        f"📊 Ich habe weitergeschaut: Zwei Filme mit sehr glaubwürdigen Empfehlungen wären ‘{top}’ und ‘{mid}’. Sie liegen beim Rating sehr nah beieinander...",
+        "⚡Kontrollhinweis: Wusstest du, dass die IMDb Datenbank mittlerweile über 6 Millionen Titel listet?",
+        f"📈 Ich persönlich empfehle dir ‘{top}’. Die verifizierten Reviews loben hier genau die Atmosphäre, die du suchst.",
+        "😊 Viel Spaß beim Anschauen — sag mir gern, ob ich noch enger filtern oder Alternativen vorschlagen soll!"
     ]
 
-    # Typing-animation: show each step one after another
+    # Typing-animation: deutlich langsamer, Zeichen-für-Zeichen in eigenen Platzhaltern
+    char_delay = 0.08  # deutlich langsamer: 80ms pro Zeichen
+    inter_step_pause = 0.8
+
     for step in steps:
-        st.markdown(step)
-        time.sleep(0.6)
+        placeholder = st.empty()
+        displayed = ""
+        for ch in step:
+            displayed += ch
+            placeholder.markdown(displayed)
+            time.sleep(char_delay)
+        time.sleep(inter_step_pause)
 
     st.markdown("---")
     st.header("Empfohlene Filme")
