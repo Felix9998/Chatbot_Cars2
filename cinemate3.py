@@ -113,4 +113,4 @@ if search:
     st.write("IMDb-Ranking: 7.6")
     st.write("Anzahl Bewertungen: 13090")
 
-    st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die spezifischen Filterkriterien ein, wenn du die Suche verfeinern möchtest.")
+    st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die 02 in das Textfeld unter dem Chatbot ein. Danach kann es mit dem Fragebogen weitergehen.")
