@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import sys
 
 st.set_page_config(page_title="CineMate", page_icon="🎬")
 
@@ -53,31 +54,47 @@ if search:
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
 
-    steps = [
-        f"🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
-        f"🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
-        f"🤔 Hmm. Ich finde Filme, die ‘{trait1}’ und ‘{trait2}’ abdecken, aber ‘{trait3}’ fehlt oft dabei. Das ist gar nicht so einfach...",
-        "🔍 Vielleicht geben uns die Kritiken der Community einen Hinweis, manchmal sind die Zuschauer genauer als die offiziellen Tags.",
-        f"✅ Und tatsächlich: In den Kommentaren wird ‘{last}’ oft als echter Geheimtipp für Fans des Genres ‘{trait3}’ genannt. Das klingt vielversprechend!",
-        "⚠ Aber: Einige dieser Empfehlungen sind von nicht verifizierten Konten. Das macht mich ein bisschen skeptisch.",
-        f"📊 Ich habe weitergeschaut: Zwei Filme mit sehr glaubwürdigen Empfehlungen wären ‘{top}’ und ‘{mid}’. Sie liegen beim Rating sehr nah beieinander...",
-        "⚡Kontrollhinweis: Wusstest du, dass die IMDb Datenbank mittlerweile über 6 Millionen Titel listet?",
-        f"📈 Ich persönlich empfehle dir ‘{top}’. Die verifizierten Reviews loben hier genau die Atmosphäre, die du suchst.",
-        "😊 Viel Spaß beim Anschauen — sag mir gern, ob ich noch enger filtern oder Alternativen vorschlagen soll!"
-    ]
+steps = [
+    f"🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
+    f"🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
+    f"🤔 Hmm. Ich finde Filme, die ‘{trait1}’ und ‘{trait2}’ abdecken, aber ‘{trait3}’ fehlt oft dabei. Das ist gar nicht so einfach...",
+    "🔍 Vielleicht geben uns die Kritiken der Community einen Hinweis, manchmal sind die Zuschauer genauer als die offiziellen Tags.",
+    f"✅ Und tatsächlich: In den Kommentaren wird ‘{last}’ oft als echter Geheimtipp für Fans des Genres ‘{trait3}’ genannt. Das klingt vielversprechend!",
+    "⚠ Aber: Einige dieser Empfehlungen sind von nicht verifizierten Konten. Das macht mich ein bisschen skeptisch.",
+    f"📊 Ich habe weitergeschaut: Zwei Filme mit sehr glaubwürdigen Empfehlungen wären ‘{top}’ und ‘{mid}’. Sie liegen beim Rating sehr nah beieinander...",
+    "⚡Kontrollhinweis: Wusstest du, dass die IMDb Datenbank mittlerweile über 6 Millionen Titel listet?",
+    f"📈 Ich persönlich empfehle dir ‘{top}’. Die verifizierten Reviews loben hier genau die Atmosphäre, die du suchst.",
+    "😊 Viel Spaß beim Anschauen — sag mir gern, ob ich noch enger filtern oder Alternativen vorschlagen soll!"
+]
 
-    # Typing-animation: deutlich langsamer, Zeichen-für-Zeichen in eigenen Platzhaltern
-    char_delay = 0.08  # deutlich langsamer: 80ms pro Zeichen
-    inter_step_pause = 0.8
+char_delay = 0.08      # Zeichenverzögerung (80 ms)
+inter_step_pause = 0.8 # Pause zwischen Schritten
 
-    for step in steps:
-        placeholder = st.empty()
-        displayed = ""
-        for ch in step:
-            displayed += ch
-            placeholder.markdown(displayed)
-            time.sleep(char_delay)
-        time.sleep(inter_step_pause)
+
+def typing_animation(text):
+    """Zeigt Text Zeichen für Zeichen an (klassische Schreibanimation)."""
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(char_delay)
+    print()  # Zeilenumbruch am Ende
+
+
+def cineMate_typing_intro():
+    """Zeigt 'CineMate schreibt...' mit animiertem Punktlauf."""
+    intro_text = "CineMate schreibt"
+    for i in range(3):  # drei Punkte nacheinander anzeigen
+        sys.stdout.write(f"\r{intro_text}{'.' * (i + 1)}")
+        sys.stdout.flush()
+        time.sleep(0.5)
+    print("\n")  # Zeilenumbruch nach Animation
+
+
+# Hauptausgabe-Schleife
+for step in steps:
+    cineMate_typing_intro()   # Animation vor jedem Schritt
+    typing_animation(step)     # Schritt langsam ausgeben
+    time.sleep(inter_step_pause)  # kurze Pause zwischen den Steps
 
     st.markdown("---")
     st.header("Empfohlene Filme")
