@@ -90,11 +90,11 @@ if search:
         print("\n")  # Zeilenumbruch nach Animation
 
 
-# Hauptausgabe-Schleife
-for step in steps:
-    cineMate_typing_intro()   # Animation vor jedem Schritt
-    typing_animation(step)     # Schritt langsam ausgeben
-    time.sleep(inter_step_pause)  # kurze Pause zwischen den Steps
+    # Hauptausgabe-Schleife
+    for step in steps:
+        cineMate_typing_intro()   # Animation vor jedem Schritt
+        typing_animation(step)     # Schritt langsam ausgeben
+        time.sleep(inter_step_pause)  # kurze Pause zwischen den Steps
 
     st.markdown("---")
     st.header("Empfohlene Filme")
