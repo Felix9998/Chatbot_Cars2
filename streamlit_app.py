@@ -68,29 +68,34 @@ if search:
     char_delay = 0.04      # Zeichenverzögerung (40 ms)
     inter_step_pause = 0.8 # Pause zwischen Schritten
 
-    placeholder_intro = st.empty()
-    placeholder_text = st.empty()
-
-    def cineMate_typing_intro():
+    def cineMate_typing_intro(container):
         """Zeigt 'CineMate schreibt...' animiert in Streamlit."""
+        intro_placeholder = container.empty()
         for dots in ["", ".", "..", "..."]:
-            placeholder_intro.markdown(f"*CineMate schreibt{dots}*")
+            intro_placeholder.markdown(f"*CineMate schreibt{dots}*")
             time.sleep(0.5)
-        placeholder_intro.empty()  # entfernt Text nach Animation
+        intro_placeholder.empty()  # entfernt Text nach Animation
 
-    def typing_animation(text):
+    def typing_animation(container, text):
         """Zeigt Text Zeichen für Zeichen im Streamlit-Platzhalter."""
         typed_text = ""
+        text_placeholder = container.empty()
         for char in text:
             typed_text += char
-            placeholder_text.markdown(typed_text)
+            text_placeholder.markdown(typed_text)
             time.sleep(char_delay)
         time.sleep(inter_step_pause)
 
+    # Container für alle Ausgaben untereinander
+    output_container = st.container()
+
     # Hauptschleife mit Animation
     for step in steps:
-        cineMate_typing_intro()
-        typing_animation(step)
+        cineMate_typing_intro(output_container)
+        
+        # Für jeden Schritt neuen Untercontainer erzeugen → bleibt sichtbar
+        with output_container:
+            typing_animation(st.empty(), step)
 
     st.markdown("---")
     st.header("Empfohlene Filme")
