@@ -42,14 +42,12 @@ if search:
     st.markdown("---")
     st.markdown("Detailauswahl abgeschlossen — danke! Ich werte jetzt deine Präferenzen aus und suche passende Filme.")
 
-    # Definiere Traits basierend auf Genre-Auswahl (Platzhalter, falls weniger als 3 gewählt wurden)
     trait1 = selected[0] if len(selected) > 0 else "(keine Auswahl)"
     trait2 = selected[1] if len(selected) > 1 else "(keine Auswahl)"
     trait3 = selected[2] if len(selected) > 2 else "(keine Auswahl)"
 
     cfg = f"Ära: {era} | Stil: {style} | Laufzeit: {runtime[0]}-{runtime[1]} min | IMDb: {rating_min}-{rating_max}"
 
-    # Platzhalter-Filmtitel für die Demonstration
     top = "Chronos V"
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
@@ -66,35 +64,33 @@ if search:
         f"📈 Ich persönlich empfehle dir ‘{top}’. Die verifizierten Reviews loben hier genau die Atmosphäre, die du suchst.",
         "😊 Viel Spaß beim Anschauen — sag mir gern, ob ich noch enger filtern oder Alternativen vorschlagen soll!"
     ]
-    
-    char_delay = 0.08      # Zeichenverzögerung (80 ms)
+
+    char_delay = 0.04      # Zeichenverzögerung (40 ms)
     inter_step_pause = 0.8 # Pause zwischen Schritten
-    
-    
-    def typing_animation(text):
-        """Zeigt Text Zeichen für Zeichen an (klassische Schreibanimation)."""
-        for char in text:
-            sys.stdout.write(char)
-            sys.stdout.flush()
-            time.sleep(char_delay)
-        print()  # Zeilenumbruch am Ende
-    
-    
+
+    placeholder_intro = st.empty()
+    placeholder_text = st.empty()
+
     def cineMate_typing_intro():
-        """Zeigt 'CineMate schreibt...' mit animiertem Punktlauf."""
-        intro_text = "CineMate schreibt"
-        for i in range(3):  # drei Punkte nacheinander anzeigen
-            sys.stdout.write(f"\r{intro_text}{'.' * (i + 1)}")
-            sys.stdout.flush()
+        """Zeigt 'CineMate schreibt...' animiert in Streamlit."""
+        for dots in ["", ".", "..", "..."]:
+            placeholder_intro.markdown(f"*CineMate schreibt{dots}*")
             time.sleep(0.5)
-        print("\n")  # Zeilenumbruch nach Animation
+        placeholder_intro.empty()  # entfernt Text nach Animation
 
+    def typing_animation(text):
+        """Zeigt Text Zeichen für Zeichen im Streamlit-Platzhalter."""
+        typed_text = ""
+        for char in text:
+            typed_text += char
+            placeholder_text.markdown(typed_text)
+            time.sleep(char_delay)
+        time.sleep(inter_step_pause)
 
-    # Hauptausgabe-Schleife
+    # Hauptschleife mit Animation
     for step in steps:
-        cineMate_typing_intro()   # Animation vor jedem Schritt
-        typing_animation(step)     # Schritt langsam ausgeben
-        time.sleep(inter_step_pause)  # kurze Pause zwischen den Steps
+        cineMate_typing_intro()
+        typing_animation(step)
 
     st.markdown("---")
     st.header("Empfohlene Filme")
