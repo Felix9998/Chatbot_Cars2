@@ -102,6 +102,17 @@ with st.container(border=True):
         placeholder="3 Genres auswählen",
     )
 
+    # 🔹 Validierung DIREKT unter der Genre-Auswahl
+    if not selected:
+        st.info("Wähle drei Genres, damit ich anfangen kann.")
+        can_generate = False
+    elif len(selected) != 3:
+        st.warning("Bitte wähle genau drei Genres.")
+        can_generate = False
+    else:
+        can_generate = True
+
+    # 🔹 Restliche Eingaben erst danach
     col1, col2 = st.columns(2, gap="medium")
 
     with col1:
@@ -118,7 +129,6 @@ with st.container(border=True):
         )
 
     with col2:
-        # ✅ Zeitspanne / Laufzeitbereich (Range-Slider)
         runtime_min, runtime_max = st.slider(
             "4) Laufzeit (Minuten) – Bereich",
             min_value=60,
@@ -128,7 +138,6 @@ with st.container(border=True):
             key="runtime_range",
         )
 
-        # ✅ IMDb Bereich (Range-Slider)
         rating_min, rating_max = st.slider(
             "5) IMDb-Rating – Bereich",
             min_value=1.0,
@@ -138,21 +147,12 @@ with st.container(border=True):
             key="rating_range",
         )
 
-    # Validierung
-    if not selected:
-        st.info("Wähle drei Genres, damit ich anfangen kann.")
-        can_generate = False
-    elif len(selected) != 3:
-        st.warning("Bitte wähle genau drei Genres.")
-        can_generate = False
-    else:
-        can_generate = True
-
     generate = st.button(
         "Empfehlung generieren",
         type="primary",
         disabled=not can_generate,
     )
+
 
 # ----------------------------------------------------------
 # Klick auf Button → Reasoning starten + einmalig zum Auswahlprozess springen
