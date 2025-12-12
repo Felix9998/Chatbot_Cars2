@@ -3,77 +3,99 @@ import time
 
 st.set_page_config(page_title="CineMate", page_icon="🎬")
 
+# ---------- Layout: Controls in Sidebar, Chat im Hauptbereich ----------
 st.title("🎬 CineMate — Dein digitaler Film-Finder")
 
-st.markdown("""
-Hallo!
-
-Ich bin CineMate – dein digitaler Film-Assistent. Ich unterstütze dich bei der Suche nach
-einem passenden Film.
-
-Bitte gib an, welche drei der folgenden sechs Genres du bevorzugst. Wähle intuitiv aus.
-""")
+st.sidebar.header("Einstellungen")
 
 genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
-selected = st.multiselect("Genre auswählen", options=genres)
+selected = st.sidebar.multiselect("Genre auswählen (genau 3)", options=genres)
+
+era = st.sidebar.selectbox("Ära / Erscheinungszeitraum", ("Klassiker (<2000)", "Modern (2000+)"))
+style = st.sidebar.radio("Visueller Stil", ("Realfilm", "Animation", "Schwarz-Weiß"))
+runtime = st.sidebar.slider("Laufzeit (Minuten)", min_value=60, max_value=240, value=(90, 120), step=1)
+rating_min, rating_max = st.sidebar.slider(
+    "IMDb-Rating (Bereich)", min_value=1.0, max_value=10.0, value=(6.0, 8.5), step=0.1
+)
+
+search = st.sidebar.button("Empfehlung generieren")
+
+# ---------- Styling: scrollbarer Chatbereich ----------
+st.markdown(
+    """
+    <style>
+      /* macht den Container „chatartig“ scrollbar */
+      div[data-testid="stVerticalBlock"] div[data-testid="stContainer"] {
+        overflow-anchor: auto;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    Ich bin CineMate – dein digitaler Film-Assistent.
+
+    Bitte wähle **genau drei Genres** und generiere dann eine Empfehlung.
+    """
+)
 
 if not selected:
-    st.info("Wähle drei Genres, damit ich anfangen kann. Beispiele: Komödie, Drama, Action...")
-
-if selected and len(selected) != 3:
+    st.info("Wähle drei Genres, damit ich anfangen kann.")
+elif len(selected) != 3:
     st.warning("Bitte wähle genau drei Genres — das hilft mir, eine präzise Empfehlung zu erstellen.")
 
-# Filmdetails
-era = st.selectbox("Ära oder Erscheinungszeitraum:", ("Klassiker (<2000)", "Modern (2000+)"))
-style = st.radio("Visueller Stil:", ("Realfilm", "Animation", "Schwarz-Weiß"))
+# ---------- Chat-Container (fixe Höhe, damit Seite nicht scrollt) ----------
+chat = st.container(height=520, border=True)
 
-runtime = st.slider("Laufzeit (Minuten)", min_value=60, max_value=240, value=(90, 120), step=1)
-rating_min, rating_max = st.slider("IMDb-Rating (Bereich)", min_value=1.0, max_value=10.0, value=(6.0, 8.5), step=0.1)
+def assistant_typing_then_message(chat_container, final_text: str, *,
+                                 pre_typing_s: float = 0.6,
+                                 dots_delay_s: float = 0.2,
+                                 char_delay_s: float = 0.035):
+    """
+    Eine Chat-Nachricht, in der zuerst 'CineMate schreibt...' im selben Bubble läuft
+    und dann direkt in den geschriebenen Text übergeht.
+    """
+    with chat_container:
+        with st.chat_message("assistant"):
+            ph = st.empty()
 
-# Validierung der Rating-Eingabe
-if rating_min < 1 or rating_max > 10:
-    st.error("IMDb-Rating muss zwischen 1.0 und 10.0 liegen.")
+            # Typing im selben Placeholder (nicht als eigene Nachricht)
+            t_end = time.time() + pre_typing_s
+            dots = ["", ".", "..", "..."]
+            i = 0
+            while time.time() < t_end:
+                ph.markdown(f"*CineMate schreibt{dots[i % 4]}*")
+                i += 1
+                time.sleep(dots_delay_s)
 
-search = st.button("Empfehlung generieren")
+            # Danach direkt in denselben Placeholder tippen
+            typed = ""
+            for c in final_text:
+                typed += c
+                ph.markdown(typed)
+                time.sleep(char_delay_s)
 
-
-# ----------------------------------------------------------
-# Minimaler Umbau der Reasoning-Sequenz mit st.chat_message
-# (Streamlit scrollt dabei zuverlässig nach unten)
-# ----------------------------------------------------------
-def typing_message(role: str, text: str, char_delay: float = 0.04):
-    """Schreibt Text Zeichen für Zeichen in eine Chat-Message."""
-    with st.chat_message(role):
-        placeholder = st.empty()
-        typed = ""
-        for c in text:
-            typed += c
-            placeholder.markdown(typed)
-            time.sleep(char_delay)
-
-
-def typing_indicator(role: str = "assistant", cycles: int = 4, delay: float = 0.25):
-    """Zeigt 'CineMate schreibt...' mit Punkten."""
-    with st.chat_message(role):
-        ph = st.empty()
-        for dots in ["", ".", "..", "..."][:cycles]:
-            ph.markdown(f"*CineMate schreibt{dots}*")
-            time.sleep(delay)
-
+def user_message(chat_container, text: str):
+    with chat_container:
+        with st.chat_message("user"):
+            st.markdown(text)
 
 if search:
-    st.markdown("---")
-    st.markdown("Danke. Deine Genre-Auswahl wurde gespeichert.")
+    if len(selected) != 3:
+        st.error("Bitte wähle genau drei Genres.")
+        st.stop()
 
-    trait1 = selected[0] if len(selected) > 0 else "(keine Auswahl)"
-    trait2 = selected[1] if len(selected) > 1 else "(keine Auswahl)"
-    trait3 = selected[2] if len(selected) > 2 else "(keine Auswahl)"
-
-    cfg = f"Ära: {era} | Stil: {style} | Laufzeit: {runtime[0]}-{runtime[1]} min | IMDb: {rating_min:.1f}-{rating_max:.1f}"
+    trait1, trait2, trait3 = selected
+    cfg = f"Ära: {era} | Stil: {style} | Laufzeit: {runtime[0]}-{runtime[1]} min | IMDb: {rating_min:.2f}-{rating_max:.2f}"
 
     top = "Chronos V"
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
+
+    # optional: User-Zusammenfassung im Chat
+    user_message(chat, f"Meine Genres: {trait1}, {trait2}, {trait3}\n\nKonfiguration: {cfg}")
 
     steps = [
         f"Die Eingaben werden analysiert, um eine Liste relevanter Filme zu erstellen. Gewählte Genres sind: {trait1}, {trait2} und {trait3}.",
@@ -87,15 +109,10 @@ if search:
         "Hier sind die drei besten Treffer aus der Datenbank.",
     ]
 
-    char_delay = 0.04
-    inter_step_pause = 0.8
-
-    # Reasoning-Sequenz als Chat (auto-scrollt zuverlässig)
     for step in steps:
-        typing_indicator(role="assistant", cycles=4, delay=0.25)  # "CineMate schreibt..."
-        typing_message("assistant", step, char_delay=char_delay)  # eigentliche Nachricht
-        time.sleep(inter_step_pause)
+        assistant_typing_then_message(chat, step)
 
+    # Empfehlungen danach normal (außerhalb vom Chat)
     st.markdown("---")
     st.header("Empfohlene Filme")
 
@@ -112,6 +129,7 @@ if search:
     st.write("Anzahl Bewertungen: 13090")
 
     st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die 02 in das Textfeld unter dem Chatbot ein. Danach kann es mit dem Fragebogen weitergehen.")
+
 
 
 
