@@ -38,16 +38,23 @@ search = st.button("Empfehlung generieren")
 
 
 # ----------------------------------------------------------
-# 1) Scroll-Helper (Auto-Scroll nach unten)
+# 1) Fixer "Page Bottom"-Anker (DOM-Ende)
+# ----------------------------------------------------------
+def render_page_bottom_anchor():
+    # Einmalig am echten Seitenende rendern
+    st.markdown("<div id='page-bottom'></div>", unsafe_allow_html=True)
+
+
+# ----------------------------------------------------------
+# 2) Scroll immer an das echte Seitenende
 # ----------------------------------------------------------
 def scroll_to_bottom():
     st.markdown(
         """
-        <div id="scroll-anchor"></div>
         <script>
-            const anchor = document.getElementById("scroll-anchor");
-            if (anchor) {
-                anchor.scrollIntoView({behavior: "smooth", block: "end"});
+            const bottom = document.getElementById("page-bottom");
+            if (bottom) {
+                bottom.scrollIntoView({behavior: "smooth", block: "end"});
             }
         </script>
         """,
@@ -81,23 +88,17 @@ if search:
         "Hier sind die drei besten Treffer aus der Datenbank.",
     ]
 
-    char_delay = 0.04      # Zeichenverzögerung (40 ms)
-    inter_step_pause = 0.8 # Pause zwischen Schritten
+    char_delay = 0.04
+    inter_step_pause = 0.8
 
-    # ----------------------------------------------------------
-    # 2) "CineMate schreibt..." + Auto-Scroll
-    # ----------------------------------------------------------
     def cineMate_typing_intro(container):
         intro_placeholder = container.empty()
         for dots in ["", ".", "..", "..."]:
             intro_placeholder.markdown(f"*CineMate schreibt{dots}*")
-            scroll_to_bottom()  # 👈 bei jeder Intro-Aktualisierung scrollen
+            scroll_to_bottom()
             time.sleep(0.5)
         intro_placeholder.empty()
 
-    # ----------------------------------------------------------
-    # 3) Typing-Animation + Auto-Scroll (nach jeder Nachricht)
-    # ----------------------------------------------------------
     def typing_animation(container, text):
         typed_text = ""
         text_placeholder = container.empty()
@@ -106,13 +107,11 @@ if search:
             text_placeholder.markdown(typed_text)
             time.sleep(char_delay)
 
-        scroll_to_bottom()          # 👈 nach kompletter Nachricht scrollen
+        scroll_to_bottom()
         time.sleep(inter_step_pause)
 
-    # Container für alle Ausgaben untereinander
     output_container = st.container()
 
-    # Hauptschleife mit Animation
     for step in steps:
         cineMate_typing_intro(output_container)
         with output_container:
@@ -134,4 +133,8 @@ if search:
     st.write("Anzahl Bewertungen: 13090")
 
     st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die 02 in das Textfeld unter dem Chatbot ein. Danach kann es mit dem Fragebogen weitergehen.")
+
+# ✅ Muss wirklich ganz unten stehen, damit es das echte Seitenende ist:
+render_page_bottom_anchor()
+
 
