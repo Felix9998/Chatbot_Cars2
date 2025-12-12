@@ -15,6 +15,11 @@ if "jumped_to_reasoning" not in st.session_state:
     st.session_state.jumped_to_reasoning = False  # verhindert mehrfaches Scrollen
 
 # ----------------------------------------------------------
+# Timing (hier stellst du den Abstand ein)
+# ----------------------------------------------------------
+INTER_MESSAGE_PAUSE = 8.0  # Sekunden Abstand zwischen zwei Reasoning-Nachrichten
+
+# ----------------------------------------------------------
 # Kleine UI-Verbesserungen
 # ----------------------------------------------------------
 st.markdown(
@@ -32,11 +37,13 @@ st.title("🎬 CineMate — Dein digitaler Film-Finder")
 # ----------------------------------------------------------
 # Chat-Hilfsfunktionen
 # ----------------------------------------------------------
-def assistant_typing_then_message(container, final_text: str,
-                                 inter_message_pause = 8.0,
-                                 pre_typing_s: float = 0.6,
-                                 dots_delay_s: float = 0.2,
-                                 char_delay_s: float = 0.03):
+def assistant_typing_then_message(
+    container,
+    final_text: str,
+    pre_typing_s: float = 0.6,
+    dots_delay_s: float = 0.2,
+    char_delay_s: float = 0.03,
+):
     """Typing + Text in derselben Chat-Bubble."""
     with container:
         with st.chat_message("assistant"):
@@ -92,7 +99,7 @@ with st.container(border=True):
         "1) Genre auswählen (genau 3)",
         options=genres,
         key="genres_select",
-        placeholder="3 Genres auswählen"
+        placeholder="3 Genres auswählen",
     )
 
     col1, col2 = st.columns(2, gap="medium")
@@ -101,29 +108,31 @@ with st.container(border=True):
         era = st.selectbox(
             "2) Ära / Erscheinungszeitraum",
             ("Klassiker (<2000)", "Modern (2000+)"),
-            key="era"
+            key="era",
         )
         style = st.radio(
             "3) Visueller Stil",
             ("Realfilm", "Animation", "Schwarz-Weiß"),
             horizontal=True,
-            key="style"
+            key="style",
         )
 
     with col2:
         runtime = st.slider(
             "4) Laufzeit (Minuten)",
-            60, 240,
+            60,
+            240,
             value=(90, 120),
             step=1,
-            key="runtime"
+            key="runtime",
         )
         rating_min, rating_max = st.slider(
             "5) IMDb-Rating (Bereich)",
-            1.0, 10.0,
+            1.0,
+            10.0,
             value=(6.0, 8.5),
             step=0.1,
-            key="rating"
+            key="rating",
         )
 
     # Validierung
@@ -139,7 +148,7 @@ with st.container(border=True):
     generate = st.button(
         "Empfehlung generieren",
         type="primary",
-        disabled=not can_generate
+        disabled=not can_generate,
     )
 
 # ----------------------------------------------------------
@@ -165,7 +174,7 @@ if st.session_state.run_reasoning:
     st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
     st.subheader("🧠 Auswahlprozess")
 
-    # Einmaliger Scroll auf den Auswahlprozess (damit man die ersten Nachrichten direkt sieht)
+    # Einmaliger Scroll auf den Auswahlprozess
     if not st.session_state.jumped_to_reasoning:
         components.html(
             """
@@ -203,7 +212,7 @@ if st.session_state.run_reasoning:
     user_message(
         reasoning_box,
         f"Genres: **{trait1}**, **{trait2}**, **{trait3}**\n\n"
-        f"Konfiguration: {cfg}"
+        f"Konfiguration: {cfg}",
     )
 
     steps = [
@@ -231,9 +240,10 @@ if st.session_state.run_reasoning:
             reasoning_box,
             step,
             pre_typing_s=0.8,
-            char_delay_s=0.03
+            char_delay_s=0.03,
         )
-        time.sleep(inter_message_pause)
+        time.sleep(INTER_MESSAGE_PAUSE)
+
     assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
 
     with reasoning_box:
@@ -257,6 +267,7 @@ if st.session_state.run_reasoning:
         "✅ Danke. Auswahl gespeichert. Bitte gib jetzt die **02** in das Textfeld "
         "unter dem Chatbot ein. Danach kann mit dem Fragebogen fortgefahren werden."
     )
+
 
 
 
