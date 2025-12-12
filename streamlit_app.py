@@ -31,32 +31,73 @@ style = st.radio("Visueller Stil:", ("Realfilm", "Animation", "Schwarz-Weiß"))
 runtime = st.slider("Laufzeit (Minuten)", min_value=60, max_value=240, value=(90, 120), step=1)
 rating_min, rating_max = st.slider("IMDb-Rating (Bereich)", min_value=1.0, max_value=10.0, value=(6.0, 8.5), step=0.1)
 
-if rating_min < 1 or rating_max > 10:
-    st.error("IMDb-Rating muss zwischen 1.0 und 10.0 liegen.")
-
 search = st.button("Empfehlung generieren")
 
+# ----------------------------------------------------------
+# ✅ Ein einziger "Scroll-Injektor" (Placeholder) – verhindert Abstand
+# ----------------------------------------------------------
+scroll_injector = st.empty()
+
+def scroll_to_bottom(behavior: str = "auto"):
+    """
+    Scrollt die Streamlit-Hauptseite (nicht den iFrame).
+    behavior: "auto" (zuverlässiger) oder "smooth"
+    """
+    with scroll_injector:
+        components.html(
+            f"""
+            <script>
+              (function() {{
+                const doc = window.parent.document;
+                const height = Math.max(
+                  doc.body.scrollHeight,
+                  doc.documentElement.scrollHeight
+                );
+                window.parent.scrollTo({{ top: height, behavior: "{behavior}" }});
+              }})();
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
 
 # ----------------------------------------------------------
-# ✅ Robust: Auto-Scroll via components.html (JS wird wirklich ausgeführt)
+# Helper für Typing-Animation
 # ----------------------------------------------------------
-def scroll_to_bottom(smooth: bool = True):
-    behavior = "smooth" if smooth else "auto"
-    components.html(
-        f"""
-        <script>
-            window.scrollTo({{ top: document.body.scrollHeight, behavior: "{behavior}" }});
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
+char_delay = 0.04
+inter_step_pause = 0.8
+
+def cineMate_typing_intro(container):
+    intro_placeholder = container.empty()
+    for dots in ["", ".", "..", "..."]:
+        intro_placeholder.markdown(f"*CineMate schreibt{dots}*")
+        scroll_to_bottom("auto")
+        time.sleep(0.35)
+    intro_placeholder.empty()
+
+def typing_animation(container, text, scroll_every_chars: int = 25):
+    typed_text = ""
+    text_placeholder = container.empty()
+
+    for i, char in enumerate(text, start=1):
+        typed_text += char
+        text_placeholder.markdown(typed_text)
+
+        # ✅ während des Tippens regelmäßig scrollen
+        if i % scroll_every_chars == 0:
+            scroll_to_bottom("auto")
+
+        time.sleep(char_delay)
+
+    # ✅ am Ende nochmal scrollen
+    scroll_to_bottom("auto")
+    time.sleep(inter_step_pause)
 
 
 if search:
     st.markdown("---")
     st.markdown("Danke. Deine Genre-Auswahl wurde gespeichert.")
-    scroll_to_bottom()
+    scroll_to_bottom("auto")
 
     trait1 = selected[0] if len(selected) > 0 else "(keine Auswahl)"
     trait2 = selected[1] if len(selected) > 1 else "(keine Auswahl)"
@@ -80,42 +121,12 @@ if search:
         "Hier sind die drei besten Treffer aus der Datenbank.",
     ]
 
-    char_delay = 0.04
-    inter_step_pause = 0.8
-
-    # Container für alle Ausgaben untereinander
     output_container = st.container()
-
-    def cineMate_typing_intro(container):
-        intro_placeholder = container.empty()
-        for dots in ["", ".", "..", "..."]:
-            intro_placeholder.markdown(f"*CineMate schreibt{dots}*")
-            scroll_to_bottom()
-            time.sleep(0.35)
-        intro_placeholder.empty()
-
-    def typing_animation(container, text, scroll_every_chars: int = 20):
-        typed_text = ""
-        text_placeholder = container.empty()
-
-        for i, char in enumerate(text, start=1):
-            typed_text += char
-            text_placeholder.markdown(typed_text)
-
-            # ✅ während des Tippens regelmäßig nach unten scrollen
-            if i % scroll_every_chars == 0:
-                scroll_to_bottom()
-
-            time.sleep(char_delay)
-
-        # ✅ am Ende der Nachricht nochmal scrollen + Pause
-        scroll_to_bottom()
-        time.sleep(inter_step_pause)
 
     for step in steps:
         cineMate_typing_intro(output_container)
         with output_container:
-            typing_animation(st.empty(), step, scroll_every_chars=20)
+            typing_animation(st.empty(), step, scroll_every_chars=25)
 
     st.markdown("---")
     st.header("Empfohlene Filme")
@@ -133,7 +144,8 @@ if search:
     st.write("Anzahl Bewertungen: 13090")
 
     st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die 02 in das Textfeld unter dem Chatbot ein. Danach kann es mit dem Fragebogen weitergehen.")
-    scroll_to_bottom()
+    scroll_to_bottom("auto")
+
 
 
 
