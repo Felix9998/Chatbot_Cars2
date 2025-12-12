@@ -53,7 +53,7 @@ Anschließend erstelle ich eine Empfehlung.
 def assistant_typing_then_message(
     container,
     final_text: str,
-    pre_typing_s: float = 0.6,
+    pre_typing_s: float = 0.8,
     dots_delay_s: float = 0.2,
     char_delay_s: float = 0.03,
 ):
@@ -118,7 +118,155 @@ with st.container(border=True):
         )
 
     with col2:
-        runtime
+        # ✅ Zeitspanne / Laufzeitbereich (Range-Slider)
+        runtime_min, runtime_max = st.slider(
+            "4) Laufzeit (Minuten) – Bereich",
+            min_value=60,
+            max_value=240,
+            value=(90, 120),
+            step=1,
+            key="runtime_range",
+        )
+
+        # ✅ IMDb Bereich (Range-Slider)
+        rating_min, rating_max = st.slider(
+            "5) IMDb-Rating – Bereich",
+            min_value=1.0,
+            max_value=10.0,
+            value=(6.0, 8.5),
+            step=0.1,
+            key="rating_range",
+        )
+
+    # Validierung
+    if not selected:
+        st.info("Wähle drei Genres, damit ich anfangen kann.")
+        can_generate = False
+    elif len(selected) != 3:
+        st.warning("Bitte wähle genau drei Genres.")
+        can_generate = False
+    else:
+        can_generate = True
+
+    generate = st.button(
+        "Empfehlung generieren",
+        type="primary",
+        disabled=not can_generate,
+    )
+
+# ----------------------------------------------------------
+# Klick auf Button → Reasoning starten + einmalig zum Auswahlprozess springen
+# ----------------------------------------------------------
+if generate:
+    st.session_state.run_reasoning = True
+    st.session_state.jumped_to_reasoning = False  # bei neuem Klick wieder erlauben
+    st.session_state.inputs = {
+        "genres": selected,
+        "era": era,
+        "style": style,
+        "runtime_min": int(runtime_min),
+        "runtime_max": int(runtime_max),
+        "rating_min": float(rating_min),
+        "rating_max": float(rating_max),
+    }
+
+# ----------------------------------------------------------
+# Auswahlprozess (erst nach Klick sichtbar) – Chat nur hier!
+# ----------------------------------------------------------
+if st.session_state.run_reasoning:
+    st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
+    st.subheader("🧠 Auswahlprozess")
+
+    # Einmaliger Scroll auf den Auswahlprozess
+    if not st.session_state.jumped_to_reasoning:
+        components.html(
+            """
+            <script>
+                const el = window.parent.document.getElementById("auswahlprozess");
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            </script>
+            """,
+            height=0,
+        )
+        st.session_state.jumped_to_reasoning = True
+
+    reasoning_box = st.container(height=520, border=True)
+
+    trait1, trait2, trait3 = st.session_state.inputs["genres"]
+    era = st.session_state.inputs["era"]
+    style = st.session_state.inputs["style"]
+    runtime_min = st.session_state.inputs["runtime_min"]
+    runtime_max = st.session_state.inputs["runtime_max"]
+    rating_min = st.session_state.inputs["rating_min"]
+    rating_max = st.session_state.inputs["rating_max"]
+
+    cfg = (
+        f"Ära: {era} | Stil: {style} | "
+        f"Laufzeit: {runtime_min}–{runtime_max} min | "
+        f"IMDb: {rating_min:.2f}–{rating_max:.2f}"
+    )
+
+    top = "Chronos V"
+    mid = "Das letzte Echo"
+    last = "Schatten im Nebel"
+
+    # Echo der Nutzereingaben (im Chat)
+    user_message(
+        reasoning_box,
+        f"Genres: **{trait1}**, **{trait2}**, **{trait3}**\n\n"
+        f"Konfiguration: {cfg}",
+    )
+
+    steps = [
+        f"Die Eingaben werden analysiert, um eine Liste relevanter Filme zu erstellen. "
+        f"Gewählte Genres sind: {trait1}, {trait2} und {trait3}.",
+        f"Die Konfiguration ({cfg}) dient als Filterbasis. "
+        f"Die Datenbank wird nach Titeln durchsucht, die diesen Kriterien entsprechen.",
+        f"Es wurden Filme identifiziert, die den Genres „{trait1}“ und „{trait2}“ entsprechen. "
+        f"Eine Übereinstimmung mit „{trait3}“ konnte jedoch datenbankseitig nicht bestätigt werden.",
+        "Für die weitere Validierung werden Nutzerrezensionen analysiert, "
+        "um qualitative Merkmale zu prüfen.",
+        f"Der Titel „Schatten im Nebel“ wird in Textanalysen häufig mit dem Merkmal "
+        f"„{trait3}“ assoziiert und entspricht den Parametern.",
+        "Allerdings stammen 47 % der positiven Bewertungen für diesen Titel "
+        "von Accounts ohne Verifizierung. Die Datenqualität ist daher eingeschränkt.",
+        f"Eine weitere Analyse ergibt zwei alternative Titel: "
+        f"„{top}“ und „{mid}“. Beide weisen eine signifikant höhere Anzahl "
+        f"verifizierter Bewertungen auf.",
+        "Kontrollhinweis: Die IMDb-Datenbank umfasst aktuell über 6 Millionen Titel.",
+        "Hier sind die drei besten Treffer aus der Datenbank.",
+    ]
+
+    for step in steps:
+        assistant_typing_then_message(reasoning_box, step)
+        time.sleep(INTER_MESSAGE_PAUSE)
+
+    assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
+
+    with reasoning_box:
+        with st.chat_message("assistant"):
+            st.markdown(f"### 1) {top}")
+            st.write("IMDb-Ranking: 8.2")
+            st.write("Anzahl Bewertungen: 14 230")
+
+        with st.chat_message("assistant"):
+            st.markdown(f"### 2) {mid}")
+            st.write("IMDb-Ranking: 8.0")
+            st.write("Anzahl Bewertungen: 13 750")
+
+        with st.chat_message("assistant"):
+            st.markdown(f"### 3) {last}")
+            st.write("IMDb-Ranking: 7.6")
+            st.write("Anzahl Bewertungen: 13 090")
+
+    assistant_message(
+        reasoning_box,
+        "✅ Danke. Auswahl gespeichert. Bitte gib jetzt die **02** in das Textfeld "
+        "unter dem Chatbot ein. Danach kann mit dem Fragebogen fortgefahren werden."
+    )
+
 
 
 
