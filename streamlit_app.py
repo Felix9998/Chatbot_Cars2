@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import time
 
 st.set_page_config(page_title="CineMate", page_icon="🎬")
@@ -10,6 +11,8 @@ if "run_reasoning" not in st.session_state:
     st.session_state.run_reasoning = False
 if "inputs" not in st.session_state:
     st.session_state.inputs = {}
+if "jumped_to_reasoning" not in st.session_state:
+    st.session_state.jumped_to_reasoning = False  # verhindert mehrfaches Scrollen
 
 # ----------------------------------------------------------
 # Kleine UI-Verbesserungen
@@ -139,10 +142,11 @@ with st.container(border=True):
     )
 
 # ----------------------------------------------------------
-# Klick auf Button → Reasoning starten
+# Klick auf Button → Reasoning starten + einmalig zum Auswahlprozess springen
 # ----------------------------------------------------------
 if generate:
     st.session_state.run_reasoning = True
+    st.session_state.jumped_to_reasoning = False  # bei neuem Klick wieder erlauben
     st.session_state.inputs = {
         "genres": selected,
         "era": era,
@@ -156,7 +160,25 @@ if generate:
 # Auswahlprozess (erst nach Klick sichtbar)
 # ----------------------------------------------------------
 if st.session_state.run_reasoning:
+    # Anker direkt vor dem Auswahlprozess
+    st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
     st.subheader("🧠 Auswahlprozess")
+
+    # Einmaliger Scroll auf den Auswahlprozess (damit man die ersten Nachrichten direkt sieht)
+    if not st.session_state.jumped_to_reasoning:
+        components.html(
+            """
+            <script>
+                const el = window.parent.document.getElementById("auswahlprozess");
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            </script>
+            """,
+            height=0,
+        )
+        st.session_state.jumped_to_reasoning = True
+
     reasoning_box = st.container(height=520, border=True)
 
     trait1, trait2, trait3 = st.session_state.inputs["genres"]
