@@ -33,6 +33,7 @@ st.title("🎬 CineMate — Dein digitaler Film-Finder")
 # Chat-Hilfsfunktionen
 # ----------------------------------------------------------
 def assistant_typing_then_message(container, final_text: str,
+                                 INTER_MESSAGE_PAUSE = 8.0,
                                  pre_typing_s: float = 0.6,
                                  dots_delay_s: float = 0.2,
                                  char_delay_s: float = 0.03):
@@ -229,10 +230,10 @@ if st.session_state.run_reasoning:
         assistant_typing_then_message(
             reasoning_box,
             step,
-            pre_typing_s=0.55,
-            char_delay_s=0.028
+            pre_typing_s=0.8,
+            char_delay_s=0.03
         )
-
+        time.sleep(INTER_MESSAGE_PAUSE)
     assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
 
     with reasoning_box:
