@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-import sys
 
 st.set_page_config(page_title="CineMate", page_icon="🎬")
 
@@ -16,7 +15,6 @@ Bitte gib an, welche drei der folgenden sechs Genres du bevorzugst. Wähle intui
 """)
 
 genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
-
 selected = st.multiselect("Genre auswählen", options=genres)
 
 if not selected:
@@ -26,18 +24,36 @@ if selected and len(selected) != 3:
     st.warning("Bitte wähle genau drei Genres — das hilft mir, eine präzise Empfehlung zu erstellen.")
 
 # Filmdetails
-era = st.selectbox("Ära oder Erscheinungszeitraum:", ("Klassiker (<2000)", "Modern (2000+)") )
+era = st.selectbox("Ära oder Erscheinungszeitraum:", ("Klassiker (<2000)", "Modern (2000+)"))
 style = st.radio("Visueller Stil:", ("Realfilm", "Animation", "Schwarz-Weiß"))
 
 runtime = st.slider("Laufzeit (Minuten)", min_value=60, max_value=240, value=(90, 120), step=1)
-
 rating_min, rating_max = st.slider("IMDb-Rating (Bereich)", min_value=1.0, max_value=10.0, value=(6.0, 8.5), step=0.1)
 
-# Validierung der Rating-Eingabe (angepasst wie gewünscht)
+# Validierung der Rating-Eingabe
 if rating_min < 1 or rating_max > 10:
     st.error("IMDb-Rating muss zwischen 1.0 und 10.0 liegen.")
 
 search = st.button("Empfehlung generieren")
+
+
+# ----------------------------------------------------------
+# 1) Scroll-Helper (Auto-Scroll nach unten)
+# ----------------------------------------------------------
+def scroll_to_bottom():
+    st.markdown(
+        """
+        <div id="scroll-anchor"></div>
+        <script>
+            const anchor = document.getElementById("scroll-anchor");
+            if (anchor) {
+                anchor.scrollIntoView({behavior: "smooth", block: "end"});
+            }
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 if search:
     st.markdown("---")
@@ -62,28 +78,35 @@ if search:
         "Allerdings stammen 47% der positiven Bewertungen für diesen Titel von Accounts ohne Verifizierung. Die Datenqualität ist daher eingeschränkt.",
         f"Eine weitere Analyse ergibt zwei alternative Titel: ‘{top}’ und ‘{mid}’. Beide weisen eine signifikant höhere Anzahl verifizierter Bewertungen auf.",
         "Kontrollhinweis: Die IMDb Datenbank umfasst aktuell über 6 Millionen verzeichnete Titel.",
-        f"Hier sind die drei besten Treffer aus der Datenbank.",
+        "Hier sind die drei besten Treffer aus der Datenbank.",
     ]
 
     char_delay = 0.04      # Zeichenverzögerung (40 ms)
     inter_step_pause = 0.8 # Pause zwischen Schritten
 
+    # ----------------------------------------------------------
+    # 2) "CineMate schreibt..." + Auto-Scroll
+    # ----------------------------------------------------------
     def cineMate_typing_intro(container):
-        """Zeigt 'CineMate schreibt...' animiert in Streamlit."""
         intro_placeholder = container.empty()
         for dots in ["", ".", "..", "..."]:
             intro_placeholder.markdown(f"*CineMate schreibt{dots}*")
+            scroll_to_bottom()  # 👈 bei jeder Intro-Aktualisierung scrollen
             time.sleep(0.5)
-        intro_placeholder.empty()  # entfernt Text nach Animation
+        intro_placeholder.empty()
 
+    # ----------------------------------------------------------
+    # 3) Typing-Animation + Auto-Scroll (nach jeder Nachricht)
+    # ----------------------------------------------------------
     def typing_animation(container, text):
-        """Zeigt Text Zeichen für Zeichen im Streamlit-Platzhalter."""
         typed_text = ""
         text_placeholder = container.empty()
         for char in text:
             typed_text += char
             text_placeholder.markdown(typed_text)
             time.sleep(char_delay)
+
+        scroll_to_bottom()          # 👈 nach kompletter Nachricht scrollen
         time.sleep(inter_step_pause)
 
     # Container für alle Ausgaben untereinander
@@ -92,15 +115,12 @@ if search:
     # Hauptschleife mit Animation
     for step in steps:
         cineMate_typing_intro(output_container)
-        
-        # Für jeden Schritt neuen Untercontainer erzeugen → bleibt sichtbar
         with output_container:
             typing_animation(st.empty(), step)
 
     st.markdown("---")
     st.header("Empfohlene Filme")
 
-    # Filmempfehlungen: IMDb-Ranking statt Preis, Anzahl Bewertungen zwischen 13000 - 15000
     st.subheader(f"1. {top}")
     st.write("IMDb-Ranking: 8.2")
     st.write("Anzahl Bewertungen: 14230")
@@ -114,3 +134,4 @@ if search:
     st.write("Anzahl Bewertungen: 13090")
 
     st.success("Danke. Auswahl gespeichert. Bitte gib jetzt die 02 in das Textfeld unter dem Chatbot ein. Danach kann es mit dem Fragebogen weitergehen.")
+
