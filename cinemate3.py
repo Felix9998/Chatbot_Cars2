@@ -81,12 +81,15 @@ rating_min, rating_max = st.slider(
 )
 
 # ----------------------------------------------------------
-# Typing-/Timing-Parameter (fix, ohne Schnellmodus)
+# Typing-/Timing-Parameter (fix)
 # ----------------------------------------------------------
 INTER_MESSAGE_PAUSE = 6.0   # Pause zwischen Nachrichten
 CHAR_DELAY = 0.03           # Schreibgeschwindigkeit (pro Zeichen)
-PRE_TYPING = 0.8            # Typing-Indikator Dauer
+PRE_TYPING = 0.8            # gewünschte Typing-Dauer
 DOTS_DELAY = 0.2            # Geschwindigkeit der Punkte
+
+# ✅ Harte Mindestdauer, damit "CineMate schreibt..." immer sichtbar ist
+MIN_TYPING_TIME = 1.2
 
 # ----------------------------------------------------------
 # Signatur der Eingaben: bei Änderung Empfehlungen verwerfen
@@ -115,14 +118,19 @@ def assistant_typing_then_message(container, final_text: str):
         with st.chat_message("assistant"):
             ph = st.empty()
 
-            # Typing indicator
-            t_end = time.time() + PRE_TYPING
+            # ✅ Effektive Typing-Dauer: mindestens MIN_TYPING_TIME
+            typing_duration = max(PRE_TYPING, MIN_TYPING_TIME)
+
+            t_start = time.time()
             dots = ["", ".", "..", "..."]
             i = 0
-            while time.time() < t_end:
+            while time.time() - t_start < typing_duration:
                 ph.markdown(f"*CineMate schreibt{dots[i % 4]}*")
                 i += 1
                 time.sleep(DOTS_DELAY)
+
+            # ✅ kurzer Flush, damit der Typing-State sicher sichtbar war
+            time.sleep(0.05)
 
             # Zeichenweise Ausgabe
             typed = ""
@@ -245,7 +253,6 @@ if search:
         f"- IMDb: **{rating_min:.1f}–{rating_max:.1f}**"
     )
 
-    # ✅ Alle Reasoning-Steps (2 Stellen neutralisiert, damit es nicht wie echte Quellen wirkt)
     steps = [
         f"🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
         f"🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
@@ -261,6 +268,7 @@ if search:
 
     for step in steps:
         assistant_typing_then_message(reasoning_box, step)
+        time.sleep(0.15)  # kleiner Render-Break, damit "schreibt..." nicht verschluckt wird
         time.sleep(INTER_MESSAGE_PAUSE)
 
     st.session_state.recommendations = generate_recommendations()
@@ -283,7 +291,6 @@ if search:
         "Danach kann es mit dem Fragebogen weitergehen."
     )
 
-    st.caption("Hinweis: Die angezeigten Filmtitel und Inhalte sind fiktiv.")
 
 
 
