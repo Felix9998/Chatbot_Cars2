@@ -22,7 +22,7 @@ if "last_sig" not in st.session_state:
 # ----------------------------------------------------------
 # Timing / Typing
 # ----------------------------------------------------------
-INTER_MESSAGE_PAUSE = 8.0
+INTER_MESSAGE_PAUSE = 5.0
 CHAR_DELAY = 0.03
 DOTS_DELAY = 0.2
 PRE_TYPING = 0.8
