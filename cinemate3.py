@@ -35,8 +35,7 @@ st.markdown(
 👋 Hallo!  
 🎥 Ich bin CineMate – dein digitaler Film-Finder. Ich helfe dir, einen Film zu finden, der zu deiner Stimmung passt. 🍿
 
-**Schritt 1:** Wähle **spontan** drei Genres aus, die dich gerade ansprechen.  
-**Wichtig:** Es müssen **genau 3** sein (Pflicht), damit CineMate starten kann.
+**Bitte ** Wähle **spontan** drei Genres aus, die dich gerade ansprechen.  
 """
 )
 
