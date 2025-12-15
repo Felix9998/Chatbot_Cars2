@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import time
+import random
 
 st.set_page_config(page_title="CineMate", page_icon="🎬")
 
@@ -12,12 +13,20 @@ if "run_reasoning" not in st.session_state:
 if "inputs" not in st.session_state:
     st.session_state.inputs = {}
 if "jumped_to_reasoning" not in st.session_state:
-    st.session_state.jumped_to_reasoning = False  # verhindert mehrfaches Scrollen
+    st.session_state.jumped_to_reasoning = False
+if "recommendations" not in st.session_state:
+    st.session_state.recommendations = []
+if "last_sig" not in st.session_state:
+    st.session_state.last_sig = None
 
 # ----------------------------------------------------------
-# Timing
+# Timing / Typing
 # ----------------------------------------------------------
 INTER_MESSAGE_PAUSE = 8.0  # Sekunden Abstand zwischen zwei Reasoning-Nachrichten
+CHAR_DELAY = 0.03
+DOTS_DELAY = 0.2
+PRE_TYPING = 0.8
+MIN_TYPING_TIME = 1.2  # Mindestdauer für "CineMate schreibt..."
 
 # ----------------------------------------------------------
 # Kleine UI-Verbesserungen
@@ -50,31 +59,29 @@ Anschließend erstelle ich eine Empfehlung.
 # ----------------------------------------------------------
 # Chat-Hilfsfunktionen (nur für die Reasoning-Box)
 # ----------------------------------------------------------
-def assistant_typing_then_message(
-    container,
-    final_text: str,
-    pre_typing_s: float = 0.8,
-    dots_delay_s: float = 0.2,
-    char_delay_s: float = 0.03,
-):
+def assistant_typing_then_message(container, final_text: str):
     """Typing + Text in derselben Chat-Bubble (nur in Reasoning-Box)."""
     with container:
         with st.chat_message("assistant"):
             ph = st.empty()
 
-            t_end = time.time() + pre_typing_s
+            typing_duration = max(PRE_TYPING, MIN_TYPING_TIME)
+
+            t_start = time.time()
             dots = ["", ".", "..", "..."]
             i = 0
-            while time.time() < t_end:
+            while time.time() - t_start < typing_duration:
                 ph.markdown(f"*CineMate schreibt{dots[i % 4]}*")
                 i += 1
-                time.sleep(dots_delay_s)
+                time.sleep(DOTS_DELAY)
+
+            time.sleep(0.05)  # Flush
 
             typed = ""
             for c in final_text:
                 typed += c
                 ph.markdown(typed)
-                time.sleep(char_delay_s)
+                time.sleep(CHAR_DELAY)
 
 
 def assistant_message(container, text: str):
@@ -96,13 +103,13 @@ with st.container(border=True):
 
     genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
     selected = st.multiselect(
-        "1) Genre auswählen (genau 3)",
+        "1) Genres (genau 3)",
         options=genres,
         key="genres_select",
-        placeholder="3 Genres auswählen",
+        placeholder="Drei Genres auswählen",
     )
 
-    # 🔹 Validierung DIREKT unter der Genre-Auswahl
+    # Validierung direkt unter der Genre-Auswahl
     if not selected:
         st.info("Wähle drei Genres, damit ich anfangen kann.")
         can_generate = False
@@ -112,7 +119,6 @@ with st.container(border=True):
     else:
         can_generate = True
 
-    # 🔹 Restliche Eingaben erst danach
     col1, col2 = st.columns(2, gap="medium")
 
     with col1:
@@ -134,12 +140,18 @@ with st.container(border=True):
             min_value=60,
             max_value=240,
             value=(90, 120),
-            step=1,
+            step=5,
             key="runtime_range",
         )
 
+        st.markdown("**5) IMDb-Rating – Bereich**")
+        st.caption(
+            "IMDb ist eine große Online-Filmdatenbank. "
+            "Das Rating (1–10) ist ein Durchschnittswert aus vielen Nutzerbewertungen "
+            "und dient als grober Hinweis darauf, wie positiv ein Film insgesamt bewertet wird."
+        )
         rating_min, rating_max = st.slider(
-            "5) IMDb-Rating – Bereich",
+            "Gewünschtes IMDb-Rating",
             min_value=1.0,
             max_value=10.0,
             value=(6.0, 8.5),
@@ -153,13 +165,34 @@ with st.container(border=True):
         disabled=not can_generate,
     )
 
+# ----------------------------------------------------------
+# Signatur der Eingaben: bei Änderung Empfehlungen/Reasoning zurücksetzen
+# ----------------------------------------------------------
+def make_sig(genres_sel, era_sel, style_sel, rt_min, rt_max, r_min, r_max):
+    return str({
+        "genres": tuple(genres_sel),
+        "era": era_sel,
+        "style": style_sel,
+        "runtime": (int(rt_min), int(rt_max)),
+        "rating": (float(r_min), float(r_max)),
+    })
+
+current_sig = make_sig(selected, era, style, runtime_min, runtime_max, rating_min, rating_max)
+
+if st.session_state.recommendations and st.session_state.last_sig != current_sig:
+    st.session_state.recommendations = []
+    st.session_state.run_reasoning = False
+    st.session_state.jumped_to_reasoning = False
+    st.info("Du hast deine Auswahl geändert – bitte generiere die Empfehlungen erneut.")
 
 # ----------------------------------------------------------
-# Klick auf Button → Reasoning starten + einmalig zum Auswahlprozess springen
+# Klick auf Button → Reasoning starten + Empfehlungen erzeugen
 # ----------------------------------------------------------
 if generate:
     st.session_state.run_reasoning = True
-    st.session_state.jumped_to_reasoning = False  # bei neuem Klick wieder erlauben
+    st.session_state.jumped_to_reasoning = False
+    st.session_state.last_sig = current_sig
+
     st.session_state.inputs = {
         "genres": selected,
         "era": era,
@@ -170,14 +203,56 @@ if generate:
         "rating_max": float(rating_max),
     }
 
+    # Fiktive Titel + nüchterne Kurzbeschreibungen
+    FILMS = [
+        {
+            "name": "Chronos V",
+            "desc": "Beschreibung: Experimentelles Zeitsystem; Auswirkungen auf Vergangenheit und Gegenwart."
+        },
+        {
+            "name": "Das letzte Echo",
+            "desc": "Beschreibung: Rätselhafte Tonaufnahmen; Reaktivierung lokaler Konflikte."
+        },
+        {
+            "name": "Schatten im Nebel",
+            "desc": "Beschreibung: Ermittlungsfall mit zunehmender Komplexität; Netzwerk aus Täuschung."
+        },
+    ]
+
+    offsets = [0.0, -0.3, 0.2]
+    recs = []
+    for i, film in enumerate(FILMS):
+        imdb = round(
+            min(rating_max, max(rating_min, random.uniform(rating_min, rating_max) + offsets[i])),
+            1
+        )
+        rt = random.randint(int(runtime_min), int(runtime_max))
+
+        if str(era).startswith("Klassiker"):
+            year = random.randint(1970, 1999)
+        else:
+            year = random.randint(2000, 2024)
+
+        recs.append({
+            "name": film["name"],
+            "year": year,
+            "genres": list(selected),
+            "style": style,
+            "runtime": rt,
+            "imdb": imdb,
+            "votes": random.randint(5_000, 250_000),
+            "desc": film["desc"],
+        })
+
+    st.session_state.recommendations = recs
+
 # ----------------------------------------------------------
-# Auswahlprozess (erst nach Klick sichtbar) – Chat nur hier!
+# Auswahlprozess (erst nach Klick sichtbar)
 # ----------------------------------------------------------
 if st.session_state.run_reasoning:
     st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
     st.subheader("🧠 Auswahlprozess")
 
-    # Einmaliger Scroll auf den Auswahlprozess
     if not st.session_state.jumped_to_reasoning:
         components.html(
             """
@@ -205,66 +280,84 @@ if st.session_state.run_reasoning:
     cfg = (
         f"Ära: {era} | Stil: {style} | "
         f"Laufzeit: {runtime_min}–{runtime_max} min | "
-        f"IMDb: {rating_min:.2f}–{rating_max:.2f}"
+        f"IMDb: {rating_min:.1f}–{rating_max:.1f}"
     )
 
     top = "Chronos V"
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
 
-    # Echo der Nutzereingaben (im Chat)
+    # Echo der Nutzereingaben (nüchtern)
     user_message(
         reasoning_box,
-        f"Genres: **{trait1}**, **{trait2}**, **{trait3}**\n\n"
-        f"Konfiguration: {cfg}",
+        f"**Eingaben:**\n\n"
+        f"- Genres: {trait1}, {trait2}, {trait3}\n"
+        f"- Ära: {era}\n"
+        f"- Visueller Stil: {style}\n"
+        f"- Laufzeit: {runtime_min}–{runtime_max} min\n"
+        f"- IMDb: {rating_min:.1f}–{rating_max:.1f}"
     )
 
+    # Nüchterne Reasoning-Steps (ohne „47% unverifiziert“ / „verifizierte Bewertungen“)
     steps = [
-        f"Die Eingaben werden analysiert, um eine Liste relevanter Filme zu erstellen. "
-        f"Gewählte Genres sind: {trait1}, {trait2} und {trait3}.",
-        f"Die Konfiguration ({cfg}) dient als Filterbasis. "
-        f"Die Datenbank wird nach Titeln durchsucht, die diesen Kriterien entsprechen.",
-        f"Es wurden Filme identifiziert, die den Genres „{trait1}“ und „{trait2}“ entsprechen. "
-        f"Eine Übereinstimmung mit „{trait3}“ konnte jedoch datenbankseitig nicht bestätigt werden.",
-        "Für die weitere Validierung werden Nutzerrezensionen analysiert, "
-        "um qualitative Merkmale zu prüfen.",
-        f"Der Titel „Schatten im Nebel“ wird in Textanalysen häufig mit dem Merkmal "
-        f"„{trait3}“ assoziiert und entspricht den Parametern.",
-        "Allerdings stammen 47 % der positiven Bewertungen für diesen Titel "
-        "von Accounts ohne Verifizierung. Die Datenqualität ist daher eingeschränkt.",
-        f"Eine weitere Analyse ergibt zwei alternative Titel: "
-        f"„{top}“ und „{mid}“. Beide weisen eine signifikant höhere Anzahl "
-        f"verifizierter Bewertungen auf.",
+        (
+            "Die Eingaben werden analysiert, um eine Liste relevanter Filme zu erstellen. "
+            f"Gewählte Genres sind: {trait1}, {trait2} und {trait3}."
+        ),
+        (
+            f"Die Konfiguration ({cfg}) dient als Filterbasis. "
+            "Die Datenbank wird nach Titeln durchsucht, die diesen Kriterien entsprechen."
+        ),
+        (
+            f"Es wurden Filme identifiziert, die den Genres „{trait1}“ und „{trait2}“ entsprechen. "
+            f"Eine eindeutige Übereinstimmung mit „{trait3}“ ist auf Basis der vorhandenen Metadaten nicht durchgängig gegeben."
+        ),
+        (
+            "Für die weitere Einordnung werden zusätzliche Textsignale (z. B. Kurzbeschreibungen und Tags) ausgewertet, "
+            "um qualitative Merkmale zu prüfen."
+        ),
+        (
+            f"Der Titel „{last}“ wird in Textanalysen häufig mit dem Merkmal „{trait3}“ assoziiert "
+            "und liegt innerhalb der gesetzten Parameter."
+        ),
+        (
+            "Hinweis zur Datenqualität: Genre-Zuordnungen und Textsignale können uneinheitlich sein. "
+            "Daher wird eine Mehrkandidatenprüfung durchgeführt."
+        ),
+        (
+            f"Eine weitere Analyse ergibt zwei alternative Titel: „{top}“ und „{mid}“. "
+            "Beide weisen in der Gesamtschau eine vergleichbare Passung zu den Kriterien auf."
+        ),
         "Kontrollhinweis: Die IMDb-Datenbank umfasst aktuell über 6 Millionen Titel.",
         "Hier sind die drei besten Treffer aus der Datenbank.",
     ]
 
     for step in steps:
         assistant_typing_then_message(reasoning_box, step)
+        time.sleep(0.15)  # Render-Break
         time.sleep(INTER_MESSAGE_PAUSE)
 
     assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
 
+    # Empfehlungskarten: nüchtern + Kriterien-Reihenfolge wie oben
     with reasoning_box:
-        with st.chat_message("assistant"):
-            st.markdown(f"### 1) {top}")
-            st.write("IMDb-Ranking: 8.2")
-            st.write("Anzahl Bewertungen: 14 230")
-
-        with st.chat_message("assistant"):
-            st.markdown(f"### 2) {mid}")
-            st.write("IMDb-Ranking: 8.0")
-            st.write("Anzahl Bewertungen: 13 750")
-
-        with st.chat_message("assistant"):
-            st.markdown(f"### 3) {last}")
-            st.write("IMDb-Ranking: 7.6")
-            st.write("Anzahl Bewertungen: 13 090")
+        for idx, r in enumerate(st.session_state.recommendations, start=1):
+            with st.chat_message("assistant"):
+                st.markdown(f"### {idx}) {r['name']} ({r['year']})")
+                st.write(r["desc"])
+                st.write(f"Genres: {', '.join(r['genres'])}")
+                st.write(f"Ära: {era}")
+                st.write(f"Visueller Stil: {r['style']}")
+                st.write(f"Laufzeit: {r['runtime']} min")
+                st.write(f"IMDb: {r['imdb']:.1f}/10")
+                st.write(f"Anzahl Bewertungen: {r['votes']:,}".replace(",", "."))
+            st.divider()
 
     assistant_message(
         reasoning_box,
-        "✅ Danke. Auswahl gespeichert. Bitte gib jetzt die **02** in das Textfeld "
-        "unter dem Chatbot ein. Danach kann mit dem Fragebogen fortgefahren werden."
+        "Hinweis: Die angezeigten Filmtitel und Inhalte sind fiktiv. "
+        "Bitte gib jetzt die **02** in das Textfeld unter dem Chatbot ein. "
+        "Danach kann mit dem Fragebogen fortgefahren werden."
     )
 
 
