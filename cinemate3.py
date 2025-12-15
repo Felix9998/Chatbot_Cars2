@@ -44,14 +44,14 @@ st.markdown(
 # ----------------------------------------------------------
 genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
 selected = st.multiselect(
+    "Wähle drei Genres:",
     options=genres,
-    placeholder="3 Genres auswählen"
+    placeholder="Drei Genres auswählen"
 )
 
-if not selected:
-    st.info("Wähle drei Genres, damit ich anfangen kann.")
 if selected and len(selected) != 3:
     st.warning("Bitte wähle genau drei Genres.")
+
 
 st.markdown("---")
 st.subheader("📋 Deine Filmauswahl")
