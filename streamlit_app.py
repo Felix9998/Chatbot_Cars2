@@ -59,47 +59,13 @@ Anschließend erstelle ich eine Empfehlung.
 # ----------------------------------------------------------
 # Chat-Hilfsfunktionen (nur für die Reasoning-Box)
 # ----------------------------------------------------------
-def assistant_typing_then_message(container, final_text: str):
-    with container:
-        with st.chat_message("assistant"):
-            ph = st.empty()
-
-            typing_duration = max(PRE_TYPING, MIN_TYPING_TIME)
-
-            t_start = time.time()
-            dots = ["", ".", "..", "..."]
-            i = 0
-            while time.time() - t_start < typing_duration:
-                ph.markdown(f"*CineMate schreibt{dots[i % 4]}*")
-                i += 1
-                time.sleep(DOTS_DELAY)
-
-            time.sleep(0.05)  # Flush
-
-            typed = ""
-            for c in final_text:
-                typed += c
-                ph.markdown(typed)
-                time.sleep(CHAR_DELAY)
-
-
-def assistant_message(container, text: str):
-    with container:
-        with st.chat_message("assistant"):
-            st.markdown(text)
-
-
-def user_message(container, text: str):
-    with container:
-        with st.chat_message("user"):
-            st.markdown(text)
-
 # ----------------------------------------------------------
-# Eingaben (immer sichtbar, normales UI)
+# Eingaben (immer sichtbar, VERTIKAL untereinander)
 # ----------------------------------------------------------
 with st.container(border=True):
     st.subheader("🎛️ Eingaben")
 
+    # 1) Genres
     genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
     selected = st.multiselect(
         "1) Genres (genau 3)",
@@ -118,52 +84,55 @@ with st.container(border=True):
     else:
         can_generate = True
 
-    col1, col2 = st.columns(2, gap="medium")
+    # 2) Ära
+    era = st.selectbox(
+        "2) Ära / Erscheinungszeitraum",
+        ("Klassiker (<2000)", "Modern (2000+)"),
+        key="era",
+    )
 
-    with col1:
-        era = st.selectbox(
-            "2) Ära / Erscheinungszeitraum",
-            ("Klassiker (<2000)", "Modern (2000+)"),
-            key="era",
-        )
-        style = st.radio(
-            "3) Visueller Stil",
-            ("Realfilm", "Animation", "Schwarz-Weiß"),
-            horizontal=True,
-            key="style",
-        )
+    # 3) Visueller Stil
+    style = st.radio(
+        "3) Visueller Stil",
+        ("Realfilm", "Animation", "Schwarz-Weiß"),
+        horizontal=True,
+        key="style",
+    )
 
-    with col2:
-        runtime_min, runtime_max = st.slider(
-            "4) Laufzeit (Minuten) – Bereich",
-            min_value=60,
-            max_value=240,
-            value=(90, 120),
-            step=5,
-            key="runtime_range",
-        )
+    # 4) Laufzeit
+    runtime_min, runtime_max = st.slider(
+        "4) Laufzeit (Minuten) – Bereich",
+        min_value=60,
+        max_value=240,
+        value=(90, 120),
+        step=5,
+        key="runtime_range",
+    )
 
-        st.markdown("**5) IMDb-Rating – Bereich**")
-        st.caption(
-            "IMDb ist eine große Online-Filmdatenbank. "
-            "Dort vergeben Nutzer*innen Bewertungen (1–10). "
-            "Das angezeigte Rating ist ein Durchschnitt aus vielen Einzelbewertungen "
-            "und dient als grober Hinweis darauf, wie positiv ein Film insgesamt bewertet wird."
-        )
-        rating_min, rating_max = st.slider(
-            "Gewünschtes IMDb-Rating",
-            min_value=1.0,
-            max_value=10.0,
-            value=(6.0, 8.5),
-            step=0.1,
-            key="rating_range",
-        )
+    # 5) IMDb-Rating
+    st.markdown("**5) IMDb-Rating – Bereich**")
+    st.caption(
+        "IMDb ist eine große Online-Filmdatenbank. "
+        "Dort vergeben Nutzer*innen Bewertungen (1–10). "
+        "Das angezeigte Rating ist ein Durchschnitt aus vielen Einzelbewertungen "
+        "und dient als grober Hinweis darauf, wie positiv ein Film insgesamt bewertet wird."
+    )
+    rating_min, rating_max = st.slider(
+        "Gewünschtes IMDb-Rating",
+        min_value=1.0,
+        max_value=10.0,
+        value=(6.0, 8.5),
+        step=0.1,
+        key="rating_range",
+    )
 
+    # Button
     generate = st.button(
         "Empfehlung generieren",
         type="primary",
         disabled=not can_generate,
     )
+
 
 # ----------------------------------------------------------
 # Signatur der Eingaben: bei Änderung Empfehlungen/Reasoning zurücksetzen
