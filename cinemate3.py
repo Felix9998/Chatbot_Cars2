@@ -44,7 +44,6 @@ st.markdown(
 # ----------------------------------------------------------
 genres = ["Komödie", "Drama", "Action", "Science-Fiction", "Horror", "Thriller"]
 selected = st.multiselect(
-    "Wähle genau 3 Genres (Pflicht):",
     options=genres,
     placeholder="3 Genres auswählen"
 )
