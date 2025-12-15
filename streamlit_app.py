@@ -59,6 +59,42 @@ Anschließend erstelle ich eine Empfehlung.
 # ----------------------------------------------------------
 # Chat-Hilfsfunktionen (nur für die Reasoning-Box)
 # ----------------------------------------------------------
+def assistant_typing_then_message(container, final_text: str):
+    """Typing + Text in derselben Chat-Bubble (nur in Reasoning-Box)."""
+    with container:
+        with st.chat_message("assistant"):
+            ph = st.empty()
+
+            typing_duration = max(PRE_TYPING, MIN_TYPING_TIME)
+
+            t_start = time.time()
+            dots = ["", ".", "..", "..."]
+            i = 0
+            while time.time() - t_start < typing_duration:
+                ph.markdown(f"*CineMate schreibt{dots[i % 4]}*")
+                i += 1
+                time.sleep(DOTS_DELAY)
+
+            time.sleep(0.05)  # Flush
+
+            typed = ""
+            for c in final_text:
+                typed += c
+                ph.markdown(typed)
+                time.sleep(CHAR_DELAY)
+
+
+def assistant_message(container, text: str):
+    with container:
+        with st.chat_message("assistant"):
+            st.markdown(text)
+
+
+def user_message(container, text: str):
+    with container:
+        with st.chat_message("user"):
+            st.markdown(text)
+
 # ----------------------------------------------------------
 # Eingaben (immer sichtbar, VERTIKAL untereinander)
 # ----------------------------------------------------------
@@ -126,13 +162,11 @@ with st.container(border=True):
         key="rating_range",
     )
 
-    # Button
     generate = st.button(
         "Empfehlung generieren",
         type="primary",
         disabled=not can_generate,
     )
-
 
 # ----------------------------------------------------------
 # Signatur der Eingaben: bei Änderung Empfehlungen/Reasoning zurücksetzen
@@ -172,20 +206,10 @@ if generate:
         "rating_max": float(rating_max),
     }
 
-    # Fiktive Titel + nüchterne Beschreibungen
     FILMS = [
-        {
-            "name": "Chronos V",
-            "desc": "Beschreibung: Experimentelles Zeitsystem; Auswirkungen auf Vergangenheit und Gegenwart."
-        },
-        {
-            "name": "Das letzte Echo",
-            "desc": "Beschreibung: Rätselhafte Tonaufnahmen; Reaktivierung lokaler Konflikte."
-        },
-        {
-            "name": "Schatten im Nebel",
-            "desc": "Beschreibung: Ermittlungsfall mit zunehmender Komplexität; Netzwerk aus Täuschung."
-        },
+        {"name": "Chronos V", "desc": "Beschreibung: Experimentelles Zeitsystem; Auswirkungen auf Vergangenheit und Gegenwart."},
+        {"name": "Das letzte Echo", "desc": "Beschreibung: Rätselhafte Tonaufnahmen; Reaktivierung lokaler Konflikte."},
+        {"name": "Schatten im Nebel", "desc": "Beschreibung: Ermittlungsfall mit zunehmender Komplexität; Netzwerk aus Täuschung."},
     ]
 
     offsets = [0.0, -0.3, 0.2]
@@ -219,6 +243,12 @@ if generate:
 # Auswahlprozess (erst nach Klick sichtbar)
 # ----------------------------------------------------------
 if st.session_state.run_reasoning:
+    # Guard: falls Session State leer ist (z.B. nach Reset), nicht crashen
+    if not st.session_state.inputs or len(st.session_state.inputs.get("genres", [])) != 3:
+        st.session_state.run_reasoning = False
+        st.warning("Bitte wähle genau drei Genres und generiere anschließend erneut.")
+        st.stop()
+
     st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
     st.subheader("🧠 Auswahlprozess")
 
@@ -256,7 +286,6 @@ if st.session_state.run_reasoning:
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
 
-    # ✅ Schön untereinander (wie in der anthropomorphen Variante, aber nüchtern)
     user_message(
         reasoning_box,
         f"**Eingaben:**\n\n"
@@ -326,6 +355,7 @@ if st.session_state.run_reasoning:
         "Bitte gib jetzt die **02** in das Textfeld unter dem Chatbot ein. "
         "Danach kann mit dem Fragebogen fortgefahren werden."
     )
+
 
 
 
