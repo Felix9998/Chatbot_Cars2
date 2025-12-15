@@ -83,7 +83,7 @@ rating_min, rating_max = st.slider(
 # ----------------------------------------------------------
 # Typing-/Timing-Parameter (fix)
 # ----------------------------------------------------------
-INTER_MESSAGE_PAUSE = 6.0   # Pause zwischen Nachrichten
+INTER_MESSAGE_PAUSE = 5.0   # Pause zwischen Nachrichten
 CHAR_DELAY = 0.03           # Schreibgeschwindigkeit (pro Zeichen)
 PRE_TYPING = 0.8            # gewünschte Typing-Dauer
 DOTS_DELAY = 0.2            # Geschwindigkeit der Punkte
@@ -290,6 +290,7 @@ if search:
         "Danke. Bitte gib jetzt die **03** in das Textfeld unter dem Chatbot ein. "
         "Danach kann es mit dem Fragebogen weitergehen."
     )
+    st.caption("Hinweis: Die angezeigten Filmtitel und Inhalte sind fiktiv.")
 
 
 
