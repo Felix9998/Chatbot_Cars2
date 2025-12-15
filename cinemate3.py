@@ -52,7 +52,6 @@ selected = st.multiselect(
 if selected and len(selected) != 3:
     st.warning("Bitte wähle genau drei Genres.")
 
-
 st.markdown("---")
 st.subheader("📋 Deine Filmauswahl")
 
@@ -81,14 +80,13 @@ rating_min, rating_max = st.slider(
     step=0.1
 )
 
-# Speed / UX
-st.markdown("---")
-fast_mode = st.checkbox("⚡ Schnellmodus (schneller schreiben & kürzere Pausen)", value=True)
-
-INTER_MESSAGE_PAUSE = 2.0 if fast_mode else 6.0
-CHAR_DELAY = 0.012 if fast_mode else 0.03
-PRE_TYPING = 0.25 if fast_mode else 0.8
-DOTS_DELAY = 0.12 if fast_mode else 0.2
+# ----------------------------------------------------------
+# Typing-/Timing-Parameter (fix, ohne Schnellmodus)
+# ----------------------------------------------------------
+INTER_MESSAGE_PAUSE = 6.0   # Pause zwischen Nachrichten
+CHAR_DELAY = 0.03           # Schreibgeschwindigkeit (pro Zeichen)
+PRE_TYPING = 0.8            # Typing-Indikator Dauer
+DOTS_DELAY = 0.2            # Geschwindigkeit der Punkte
 
 # ----------------------------------------------------------
 # Signatur der Eingaben: bei Änderung Empfehlungen verwerfen
@@ -104,7 +102,6 @@ def make_sig():
 
 current_sig = make_sig()
 
-# Wenn bereits Empfehlungen existieren und Inputs sich ändern -> verwerfen
 if st.session_state.recommendations and st.session_state.last_sig != current_sig:
     st.session_state.recommendations = []
     st.session_state.jumped_to_reasoning = False
@@ -118,7 +115,7 @@ def assistant_typing_then_message(container, final_text: str):
         with st.chat_message("assistant"):
             ph = st.empty()
 
-            # typing indicator
+            # Typing indicator
             t_end = time.time() + PRE_TYPING
             dots = ["", ".", "..", "..."]
             i = 0
@@ -127,7 +124,7 @@ def assistant_typing_then_message(container, final_text: str):
                 i += 1
                 time.sleep(DOTS_DELAY)
 
-            # typed text
+            # Zeichenweise Ausgabe
             typed = ""
             for c in final_text:
                 typed += c
@@ -216,11 +213,14 @@ if search:
         f"IMDb: {rating_min:.1f}–{rating_max:.1f}"
     )
 
-    # Anker
+    # Referenznamen für die Steps (passen zu FILMS)
+    top = "Chronos V"
+    mid = "Das letzte Echo"
+    last = "Schatten im Nebel"
+
     st.markdown("<div id='auswahlprozess'></div>", unsafe_allow_html=True)
     st.subheader("🧠 Auswahlprozess")
 
-    # Jump
     if not st.session_state.jumped_to_reasoning:
         components.html(
             """
@@ -235,7 +235,6 @@ if search:
 
     reasoning_box = st.container(height=520, border=True)
 
-    # Echo: Kriterien sichtbar (Kritikpunkt: "Daten anzeigen, die abgefragt wurden")
     user_message(
         reasoning_box,
         f"**Deine Kriterien:**\n\n"
@@ -246,19 +245,24 @@ if search:
         f"- IMDb: **{rating_min:.1f}–{rating_max:.1f}**"
     )
 
-    # Kurzer, neutraler Prozess (ohne „verifizierte Reviews“ etc.)
+    # ✅ Alle Reasoning-Steps (2 Stellen neutralisiert, damit es nicht wie echte Quellen wirkt)
     steps = [
-        f"🔎 Ich nutze deine Auswahl ({trait1}, {trait2}, {trait3}) und filtere passende Optionen.",
-        f"🎛️ Grundlage sind deine Kriterien ({cfg}).",
-        "📚 Hinweis: IMDb ist eine sehr große Filmdatenbank (mehrere Millionen Titel).",
-        "✅ Ich zeige dir jetzt drei fiktive Beispiel-Treffer, damit du die Darstellung bewerten kannst.",
+        f"🔎 Ich werte deine Präferenzen aus und erstelle ein Ranking. Du hast Lust auf: {trait1}, {trait2} und {trait3}.",
+        f"🎬 Deine Konfiguration ({cfg}) ist meine Grundlage. Ich durchforste meine Film-Datenbank nach passenden Streifen...",
+        f"🤔 Hmm. Ich finde Filme, die ‘{trait1}’ und ‘{trait2}’ abdecken, aber ‘{trait3}’ fehlt oft dabei. Das ist gar nicht so einfach...",
+        "🔍 Vielleicht helfen zusätzliche Hinweise aus ähnlichen Suchmustern, manchmal sind solche Signale genauer als reine Tags.",
+        f"✅ Und tatsächlich: ‘{last}’ taucht häufig im Zusammenhang mit ‘{trait3}’ auf. Das klingt vielversprechend!",
+        "⚠ Aber: Genre-Zuordnungen sind nicht immer eindeutig. Ich prüfe deshalb lieber mehrere Kandidaten.",
+        f"📊 Ich habe weitergeschaut: Zwei Filme mit sehr ähnlichem Gesamtscore wären ‘{top}’ und ‘{mid}’. Sie liegen beim Rating sehr nah beieinander...",
+        "⚡ Kontrollhinweis: Wusstest du, dass die IMDb Datenbank mittlerweile über 6 Millionen Titel listet?",
+        f"📈 Insgesamt empfehle ich dir ‘{top}’. Der Treffer passt in der Gesamtschau am besten zu deiner Auswahl.",
+        "😊 Viel Spaß beim Anschauen!"
     ]
 
     for step in steps:
         assistant_typing_then_message(reasoning_box, step)
         time.sleep(INTER_MESSAGE_PAUSE)
 
-    # Empfehlungen erzeugen + ausgeben
     st.session_state.recommendations = generate_recommendations()
 
     assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
@@ -279,9 +283,7 @@ if search:
         "Danach kann es mit dem Fragebogen weitergehen."
     )
 
-    # Fiktiv-Hinweis unten (wie gewünscht)
-    st.caption(
-        "Hinweis: Die angezeigten Filmtitel und Inhalte sind fiktiv."
-    )
+    st.caption("Hinweis: Die angezeigten Filmtitel und Inhalte sind fiktiv.")
+
 
 
