@@ -22,7 +22,7 @@ if "last_sig" not in st.session_state:
 # ----------------------------------------------------------
 # Timing / Typing
 # ----------------------------------------------------------
-INTER_MESSAGE_PAUSE = 8.0  # Sekunden Abstand zwischen zwei Reasoning-Nachrichten
+INTER_MESSAGE_PAUSE = 8.0
 CHAR_DELAY = 0.03
 DOTS_DELAY = 0.2
 PRE_TYPING = 0.8
@@ -60,7 +60,6 @@ Anschließend erstelle ich eine Empfehlung.
 # Chat-Hilfsfunktionen (nur für die Reasoning-Box)
 # ----------------------------------------------------------
 def assistant_typing_then_message(container, final_text: str):
-    """Typing + Text in derselben Chat-Bubble (nur in Reasoning-Box)."""
     with container:
         with st.chat_message("assistant"):
             ph = st.empty()
@@ -147,7 +146,8 @@ with st.container(border=True):
         st.markdown("**5) IMDb-Rating – Bereich**")
         st.caption(
             "IMDb ist eine große Online-Filmdatenbank. "
-            "Das Rating (1–10) ist ein Durchschnittswert aus vielen Nutzerbewertungen "
+            "Dort vergeben Nutzer*innen Bewertungen (1–10). "
+            "Das angezeigte Rating ist ein Durchschnitt aus vielen Einzelbewertungen "
             "und dient als grober Hinweis darauf, wie positiv ein Film insgesamt bewertet wird."
         )
         rating_min, rating_max = st.slider(
@@ -203,7 +203,7 @@ if generate:
         "rating_max": float(rating_max),
     }
 
-    # Fiktive Titel + nüchterne Kurzbeschreibungen
+    # Fiktive Titel + nüchterne Beschreibungen
     FILMS = [
         {
             "name": "Chronos V",
@@ -287,18 +287,17 @@ if st.session_state.run_reasoning:
     mid = "Das letzte Echo"
     last = "Schatten im Nebel"
 
-    # Echo der Nutzereingaben (nüchtern)
+    # ✅ Schön untereinander (wie in der anthropomorphen Variante, aber nüchtern)
     user_message(
         reasoning_box,
         f"**Eingaben:**\n\n"
-        f"- Genres: {trait1}, {trait2}, {trait3}\n"
-        f"- Ära: {era}\n"
-        f"- Visueller Stil: {style}\n"
-        f"- Laufzeit: {runtime_min}–{runtime_max} min\n"
-        f"- IMDb: {rating_min:.1f}–{rating_max:.1f}"
+        f"- **Genres:** {trait1}, {trait2}, {trait3}\n"
+        f"- **Ära / Erscheinungszeitraum:** {era}\n"
+        f"- **Visueller Stil:** {style}\n"
+        f"- **Laufzeit:** {runtime_min}–{runtime_max} min\n"
+        f"- **IMDb-Rating:** {rating_min:.1f}–{rating_max:.1f}"
     )
 
-    # Nüchterne Reasoning-Steps (ohne „47% unverifiziert“ / „verifizierte Bewertungen“)
     steps = [
         (
             "Die Eingaben werden analysiert, um eine Liste relevanter Filme zu erstellen. "
@@ -334,12 +333,11 @@ if st.session_state.run_reasoning:
 
     for step in steps:
         assistant_typing_then_message(reasoning_box, step)
-        time.sleep(0.15)  # Render-Break
+        time.sleep(0.15)
         time.sleep(INTER_MESSAGE_PAUSE)
 
     assistant_message(reasoning_box, "—\n\n## 🍿 Empfohlene Filme")
 
-    # Empfehlungskarten: nüchtern + Kriterien-Reihenfolge wie oben
     with reasoning_box:
         for idx, r in enumerate(st.session_state.recommendations, start=1):
             with st.chat_message("assistant"):
@@ -359,6 +357,7 @@ if st.session_state.run_reasoning:
         "Bitte gib jetzt die **02** in das Textfeld unter dem Chatbot ein. "
         "Danach kann mit dem Fragebogen fortgefahren werden."
     )
+
 
 
 
